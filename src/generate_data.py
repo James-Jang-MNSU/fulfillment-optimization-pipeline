@@ -17,9 +17,9 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 
 def generate_orders(n=NUM_ORDERS):
-    '''
+    """
     Generates synthetic, clean order data.
-    '''
+    """
     print(f"Generating {n} orders...")
     
     # Keys are column names and values are arrays of data
@@ -43,11 +43,11 @@ def generate_orders(n=NUM_ORDERS):
     return df
 
 def corrupt_data(df, corruption_rate=PROB_DIRTY_DATA):
-    '''
+    """
     Injects specific data quality issues:
     1. NULL values in 'num_items' (simulating sensor miss)
     2. Negative values in 'total_weight_kg' (simulating calculation error)
-    '''
+    """
     # Copy data 
     dirty_df = df.copy()
     
@@ -82,10 +82,14 @@ if __name__ == "__main__":
     save_path = OUTPUT_PATH / "orders.csv"
     dirty_orders.to_csv(save_path, index=False)
     
-    
     # 4. Validation
     print(f"SUCCESS: Generated dirty data at {save_path}")
     print("First 5 rows:")
     print(orders_df.head())
+    print("-" * 30)
     print("\nMissing Values Count:")
     print(dirty_orders.isnull().sum())
+    print("-" * 30)
+    print("Negative Weights Count:")
+    print((dirty_orders['total_weight_kg'] < 0).sum()) # Create a boolean mask (True for negatives) and sum it up
+    print("-" * 30)
