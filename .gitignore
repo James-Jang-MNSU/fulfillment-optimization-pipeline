@@ -1,0 +1,12 @@
+# Ignore the virtual environment
+venv/
+
+# Ignore generated data (we only version control the code)
+data/
+
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+
+# Ignore system files
+.DS_Store
