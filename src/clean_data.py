@@ -6,7 +6,7 @@ DB_PATH = Path("data/processed/fulfillment.db")
 
 def create_clean_view():
     """
-    Creates a SQL View that sanitizes the data on the fly
+    Creates a SQL View that cleans the data
     """
 
     conn = sqlite3.connect(DB_PATH)
@@ -18,7 +18,7 @@ def create_clean_view():
     
     # 1. Define the Cleaning Logic (The View)
     # Assumption 1: negative weights are sign-entry errors
-    #    (e.g. scanner glitch), not returns or calibration errors.
+    #    (e.g. scanner glitch), not returns or calibration errors
     # Assumption 2: NULLs are invalid orders   
     create_view_sql = """
     CREATE VIEW clean_orders AS
@@ -40,8 +40,7 @@ def create_clean_view():
     print("View 'clean_orders' created successfully.")
 
     # 4. Validation
-    # We query the VIEW, not the raw table
-    # If the view works, we should see fewer rows than the original 1000
+    # If the view works, should see fewer rows than the original 1000
     count = cursor.execute("SELECT COUNT(*) FROM clean_orders").fetchone()[0]
     
     print(f"Clean rows available: {count}")
