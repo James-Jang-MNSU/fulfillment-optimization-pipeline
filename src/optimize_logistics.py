@@ -139,7 +139,7 @@ def save_results(df, choices, workers):
         # Check which worker was assigned
         assigned_worker = None
         for worker in workers:
-            if choices[oid][worker].varValue == 1.0:
+            if choices[oid][worker].varValue > 0.5:
                 assigned_worker = worker
                 break
         

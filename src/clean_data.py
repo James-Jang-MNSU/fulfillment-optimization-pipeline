@@ -39,7 +39,7 @@ def create_clean_view():
     
     print("View 'clean_orders' created successfully.")
 
-    # 4. Validation
+    # 3. Validation
     # If the view works, should see fewer rows than the original 1000
     count = cursor.execute("SELECT COUNT(*) FROM clean_orders").fetchone()[0]
     

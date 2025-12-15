@@ -18,27 +18,34 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 def generate_orders(n=NUM_ORDERS):
     """
-    Generates synthetic, clean order data.
+    Generates synthetic order data with physical correlation.
     """
     print(f"Generating {n} orders...")
     
-    # Keys are column names and values are arrays of data
-    data = {
-        # Create IDs
-        'order_id': np.arange(1, n + 1),
-        
-        # Using Poisson distribution: Mean = 3
-        'num_items': np.random.poisson(lam=3, size=n), 
-        
-        # Using Normal distribution: Mean = 5kg, StdDev = 2kg
-        'total_weight_kg': np.random.normal(loc=5, scale=2, size=n)
-    }
+    # 1. Create IDs
+    ids = np.arange(1, n + 1)
     
-    df = pd.DataFrame(data)
+    # 2. Generate Items (Poisson)
+    items = np.random.poisson(lam=3, size=n)
+    items = np.clip(items, 1, None) # Clip to ensure no 0-item orders
     
-    # A Normal distribution can give negative numbers. We "clip" them to be at least 0.1.
-    df['total_weight_kg'] = df['total_weight_kg'].clip(lower=0.1)
-    df['num_items'] = df['num_items'].clip(lower=1)
+    # 3. Generate weight (Dependent on item count)
+    # Logic: Total Weight = Num Items * Avg Item Weight
+    # Treat 'Avg Item Weight' as a random variable (Normal Dist: Mean 2kg, Stdev 0.5kg)
+    avg_item_weights = np.random.normal(loc=2.0, scale=0.5, size=n)
+    
+    # Safety Clip: A single item cannot weigh negative kg. Minimum 0.1kg per item.
+    avg_item_weights = np.clip(avg_item_weights, 0.1, None)
+    
+    # Calculate Total Weight
+    weights = items * avg_item_weights
+    
+    # 4. Build the DataFrame
+    df = pd.DataFrame({
+        'order_id': ids,
+        'num_items': items,
+        'total_weight_kg': np.round(weights, 2)
+    })
     
     return df
 
@@ -82,10 +89,14 @@ if __name__ == "__main__":
     save_path = OUTPUT_PATH / "orders.csv"
     dirty_orders.to_csv(save_path, index=False)
     
-    # 4. Validation
     print(f"SUCCESS: Generated dirty data at {save_path}")
-    print("First 5 rows:")
+    
+    # 4. Validation
+    print("First 5 rows of generated data:")
     print(orders_df.head())
+    print("-" * 30)
+    print("First 5 rows of corrupt data:")
+    print(dirty_orders.head())
     print("-" * 30)
     print("\nMissing Values Count:")
     print(dirty_orders.isnull().sum())
