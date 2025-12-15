@@ -6,13 +6,33 @@ from pathlib import Path
 # --- CONFIGURATION ---
 DB_PATH = Path("data/processed/fulfillment.db")
 
-# The Workforce: Capabilities and Costs
+# Time Horizon: 1 Day (8 Hour Shift)
 # Speed = Items per Hour
 # Wage = Dollars per Hour
+# Max Hours = Hours per Shift 
+
 WORKERS = {
-    "Junior": {"speed": 30,  "wage": 15.0},
-    "Senior": {"speed": 60,  "wage": 25.0},
-    "Robot":  {"speed": 120, "wage": 50.0}
+    # Junior worker: Slow and expensive per item, but infinite availability
+    "Junior": {
+        "speed": 25,
+        "wage": 16.0,
+        "max_hours": 9999 # Effectively Infinite (Can hire temp agencies)
+    },
+    
+    # Senior worker: Good value, but limited bodies (2 Seniors on shift)
+    "Senior": {
+        "speed": 65,
+        "wage": 28.0,
+        "max_hours": 16 # 2 seniors * 8 hours
+    },
+    
+    # Robot: Cheap to run, super fast, but strict limit (1 Robot)
+    # Only OpEx (Electricity), not CapEx (Purchase price is sunk cost)
+    "Robot": {
+        "speed": 140,
+        "wage": 5.0,   # Just electricity/maintenence
+        "max_hours": 8 # 1 Robot * 8 hours
+    }
 }
 
 def get_order_data():
@@ -70,14 +90,33 @@ def optimize_schedule(df):
     print("Objective Function (Cost Minimization) added.")
 
     # 4. Add Constraints
+    
     # Constraint 1: Every order must be assigned to ONE worker
     for oid in order_ids:
         worker_switches = [choices[oid][w] for w in worker_names]
 
         # Number of workers of each order = sum of worker switches
-        prob += pulp.lpSum(worker_switches) == 1
+        prob += pulp.lpSum(worker_switches) == 1, f"Single_Ownership_Order{oid}"
         
     print("Constraint added: Each order assigned to exactly one worker.")
+    
+    # Constraint 2: Daily Capacity Limits
+    for worker in worker_names:
+        limit = WORKERS[worker]["max_hours"]
+        speed = WORKERS[worker]["speed"]
+        
+        # Calculate total hours assigned to current worker
+        worked_hours = []   # List of worked hours by worker
+        for i, row in df.iterrows():
+            oid = row['order_id']
+            items = row['num_items']
+            variable = choices[oid][worker]
+            worked_hours.append((items / speed) * variable)
+        
+        total_worked_hours = pulp.lpSum(worked_hours)
+        prob += total_worked_hours <= limit, f"Max_Capacity_{worker}"
+        
+    print("Constraint added: Shift capacity limits active.")
 
     # 5. Solve the Problem
     prob.solve(pulp.PULP_CBC_CMD(msg=0))
