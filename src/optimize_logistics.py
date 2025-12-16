@@ -2,10 +2,9 @@ import sqlite3
 import pandas as pd
 import pulp
 from pathlib import Path
+from setup_db import DB_PATH
 
 # --- CONFIGURATION ---
-DB_PATH = Path("data/processed/fulfillment.db")
-
 # Time Horizon: 1 Day (8 Hour Shift)
 # Speed = Items per Hour
 # Wage = Dollars per Hour
@@ -51,9 +50,12 @@ def get_order_data():
     
     return df
 
-def optimize_schedule(df):
+def solve_model(df):
+    """
+    Constructs the LP problem, adds constraints, and calculates the optimal solution
+    Returns the raw PuLP objects needed to extract the answer
+    """
     print("\n--- OPTIMIZING ---")
-
     # 1. Initialize model: Use LpMinimize
     prob = pulp.LpProblem("Fulfillment_Cost_Minimization", pulp.LpMinimize)
     
@@ -66,7 +68,6 @@ def optimize_schedule(df):
     
     # 3. Define the objective variable: Cost = (Num Items / Speed) * Wage
     costs = []
-
     # Nested loop to calculate costs for each combination of order x worker
     for i, row in df.iterrows():
         oid = row['order_id']
@@ -81,6 +82,7 @@ def optimize_schedule(df):
 
             variable = choices[oid][worker]
             costs.append(cost_to_pack * variable)
+    
     # Objective Variable
     total_costs = pulp.lpSum(costs)
             
@@ -96,8 +98,7 @@ def optimize_schedule(df):
         worker_switches = [choices[oid][w] for w in worker_names]
 
         # Number of workers of each order = sum of worker switches
-        prob += pulp.lpSum(worker_switches) == 1, f"Single_Ownership_Order{oid}"
-        
+        prob += pulp.lpSum(worker_switches) == 1, f"Single_Ownership_Order{oid}"     
     print("Constraint added: Each order assigned to exactly one worker.")
     
     # Constraint 2: Daily Capacity Limits
@@ -115,10 +116,9 @@ def optimize_schedule(df):
         
         total_worked_hours = pulp.lpSum(worked_hours)
         prob += total_worked_hours <= limit, f"Max_Capacity_{worker}"
-        
     print("Constraint added: Shift capacity limits active.")
 
-    # 5. Solve the Problem
+    # 5. Solve
     prob.solve(pulp.PULP_CBC_CMD(msg=0))
     
     # Results
@@ -129,6 +129,10 @@ def optimize_schedule(df):
     return prob, choices, order_ids, worker_names
 
 def save_results(df, choices, workers):
+    """
+    Extracts the solution, saves it to SQL ('assignments' table)
+    Returns a clean DataFrame
+    """
     print("\n--- RESULTS ---")
     results = []
     
@@ -152,7 +156,9 @@ def save_results(df, choices, workers):
         results.append({
             "order_id": oid,
             "assigned_worker": assigned_worker,
-            "cost": cost
+            "cost": cost,
+            "num_items": row['num_items'],
+            "total_weight_kg": row['total_weight_kg']
         })
 
     # Convert to DataFrame
@@ -161,14 +167,18 @@ def save_results(df, choices, workers):
     # Print the summary
     print("Workforce Distribution:")
     print(results_df['assigned_worker'].value_counts())
-    
     print(f"\nTotal Cost of Operation: ${results_df['cost'].sum():,.2f}")
     
+    # Save to SQL
+    conn = sqlite3.connect(DB_PATH)
+    results_df.to_sql("assignments", conn, if_exists="replace", index=False)
+    conn.close()
+
     return results_df
     
 if __name__ == "__main__":
     orders_df = get_order_data()
-    prob, choices, orders, workers = optimize_schedule(orders_df)
+    prob, choices, orders, workers = solve_model(orders_df)
     
     # Only save results when solution exists
     if pulp.LpStatus[prob.status] == "Optimal":

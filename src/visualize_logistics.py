@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from optimize_logistics import optimize_schedule, WORKERS, DB_PATH
+from setup_db import DB_PATH
 
 # --- CONFIGURATION ---
 OUTPUT_PATH = "reports/dashboard.png"
@@ -22,41 +22,23 @@ def load_data():
     conn.close()
     return df
 
-def run_optimization(df):
+def load_results():
     """
-    Gets solution by running optimizer and return results as a clean DataFrame
+    Loads the optimization results directly from the SQL 'assignments' table
     """
-    print("--- Running Optimization Model ---")
-
-    # 1. Run optimization
-    prob, choices, order_ids, worker_names = optimize_schedule(df)
-    
-    # 2. Extract results: Same logic used in save_results() from optimize_logistics
-    results = []
-    for i, row in df.iterrows():
-        oid = row['order_id']
-        assigned_worker = None
+    print("--- Loading Assignments from SQL ---")
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        results_df = pd.read_sql_query("SELECT * FROM assignments", conn)
+        print(f"Loaded {len(results_df)} assignments.")
+    except Exception as e:
+        print(f"Error loading results: {e}")
+        print("Did you run the optimization step? The 'assignments' table might be missing.")
+        results_df = pd.DataFrame() # Return empty if failed
+    finally:
+        conn.close()
         
-        for worker in worker_names:
-            if choices[oid][worker].varValue > 0.5:
-                assigned_worker = worker
-                break
-        
-        # 3. Calculate specific cost for current assignment
-        if assigned_worker:
-            speed = WORKERS[assigned_worker]["speed"]
-            wage  = WORKERS[assigned_worker]["wage"]
-            cost  = (row['num_items'] / speed) * wage
-            
-            results.append({
-                "order_id": oid,
-                "assigned_worker": assigned_worker,
-                "cost": cost,
-                "num_items": row['num_items'],
-                "total_weight_kg": row['total_weight_kg']
-            })
-            
-    return pd.DataFrame(results)
+    return results_df
 
 # --- 1. MODULAR PLOTTING FUNCTIONS ---
 
@@ -112,9 +94,39 @@ def draw_summary_text(results_df, ax):
         
     ax.text(0.1, 0.5, text_str, fontsize=12, fontfamily='monospace', va='center')
 
+def plot_safety_audit(results_df, ax=None):
+    """
+    Visualizes the weight range handled by each worker type.
+    """
+    if ax is None: fig, ax = plt.subplots()
+    
+    worker_order = ["Robot", "Senior", "Junior"]
+    
+    # Box Plot: Shows the Median, Quartiles, and Outliers
+    sns.boxplot(
+        data=results_df, 
+        x="assigned_worker", 
+        y="total_weight_kg",   # Note: In run_optimization, we mapped 'total_weight_kg' to 'weight'
+        order=worker_order, 
+        palette="coolwarm", # distinct colors for contrast
+        ax=ax
+    )
+    
+    ax.set_title("Safety Audit: Weight Distribution by Worker")
+    ax.set_ylabel("Order Weight (kg)")
+    ax.set_xlabel("Assigned Worker")
+    
+    # Add a red reference line at 5kg (The hypothetical "Safe Limit")
+    ax.axhline(y=5, color='red', linestyle='--', linewidth=1.5, label='Robot Limit (5kg)')
+    ax.legend(loc='upper right')
+
 # --- 2. THE DASHBOARD BUILDER ---
 
 def save_dashboard(clean_df, results_df):
+    """
+    Generates the final 6-panel dashboard.
+    Updated: Replaced Scatter Plot with Safety Audit Box Plot.
+    """
     print("--- Generating 6-Panel Dashboard ---")
     
     # 3 Rows, 2 Columns (Size = 16x18 to fit everything)
@@ -125,8 +137,8 @@ def save_dashboard(clean_df, results_df):
     plot_weight_distribution(clean_df, ax=axes[0, 0])
     plot_items_distribution(clean_df, ax=axes[0, 1])
     
-    # Row 2: Correlation & Summary
-    plot_correlation(clean_df, ax=axes[1, 0])
+    # Row 2: Audit & Summary
+    plot_safety_audit(results_df, ax=axes[1, 0])
     draw_summary_text(results_df, ax=axes[1, 1]) # <--- The "Empty" Slot
     
     # Row 3: Outputs
@@ -140,14 +152,19 @@ def save_dashboard(clean_df, results_df):
     plt.show()
     print(f"Dashboard saved to {OUTPUT_PATH}")
 
-
 if __name__ == "__main__":
-    # 1. Load data
+    # 1. Load Inputs(initial data)
     df = load_data()
-    print(f"Raw Data Loaded: {len(df)} records.")
     
-    # 2. Run the optimization and catch the results
-    results_df = run_optimization(df)
+    # 2. Load Outputs (for the "After" charts)
+    results_df = load_results()
     
-    # 3. Output dashboard
-    save_dashboard(df, results_df)
+    if not results_df.empty:
+        # 3. Generate the Dashboard
+        save_dashboard(df, results_df)
+        
+        # 4. Show the Safety Audit (Pop-up for quick check)
+        # plot_safety_audit(results_df)
+        # plt.show()
+    else:
+        print("Skipping visualization because results are missing.")
