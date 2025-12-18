@@ -2,14 +2,14 @@
 ![Status](https://img.shields.io/badge/Status-Complete-success) ![Python](https://img.shields.io/badge/Python-3.x-blue) ![License](https://img.shields.io/badge/License-MIT-green)
 
 ### 📋 Executive Summary
-An end-to-end data engineering pipeline that optimizes worker schedules to minimize daily labor costs. The system features a custom Linear Programming model, automated physical feasibility auditing (Safety Checks), and a seamless handoff to Business Intelligence tools.
+An end-to-end data engineering pipeline that generates synthetic logistics data to simulate realistic warehouse operations. The system uses a custom Linear Programming model to optimize labor costs and implements an automated statistical audit to catch safety violations caused by unconstrained algorithmic decisions.
 
 ---
 
 ### 🚀 Business Value
-* **Cost Minimization:** Reduces labor costs by assigning orders to the most cost-efficient worker type (Robot vs. Human) using **Linear Optimization**.
-* **Risk Mitigation:** Automatically detects "Operational Drift" and safety violations (e.g., Robots carrying overweight items) via a **Statistical Audit Layer**.
-* **Automated Reporting:** Transforms raw logs into executive dashboards and BI-ready datasets with a single "One-Click" execution command.
+* **Cost Minimization:** Minimizes daily labor costs by mathematically prioritizing the most cost-efficient worker type (Robot vs. Human) using **Linear Optimization**.
+* **Safety Assurance:** Automatically detects **Model Blindness** (i.e., an unconstrained algorithm assigning overweight items to Robots) via a post-process **Statistical Audit Layer**.
+* **Automated Reporting:** Transforms raw operational logs into executive KPIs and a fully interactive **Power BI** dashboard with a single execution command.
 
 ---
 
@@ -17,7 +17,7 @@ An end-to-end data engineering pipeline that optimizes worker schedules to minim
 * **Language:** Python 3.10+
 * **Optimization:** PuLP (Linear Programming)
 * **Data Engineering:** Pandas, NumPy, SQLite
-* **Visualization:** Matplotlib, Seaborn
+* **Visualization:** Power BI (Interactive Dashboard), Matplotlib (Static Audit Charts)
 * **Orchestration:** Subprocess & Custom Logging
 
 ---
