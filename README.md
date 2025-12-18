@@ -9,7 +9,7 @@ An end-to-end data engineering pipeline that generates synthetic logistics data 
 ### 🚀 Business Value
 * **Cost Minimization:** Minimizes daily labor costs by mathematically prioritizing the most cost-efficient worker type (Robot vs. Human) using **Linear Optimization**.
 * **Safety Assurance:** Automatically detects **Model Blindness** (i.e., an unconstrained algorithm assigning overweight items to Robots) via a post-process **Statistical Audit Layer**.
-* **Automated Reporting:** Transforms raw operational logs into executive KPIs and a fully interactive **Power BI** dashboard with a single execution command.
+* **Automated Data Handoff:** Instantly generates an automated static dashboard (`PNG`) for immediate validation as well as a BI-ready format (`CSV`), for a Power BI dashboard which always reflects the latest simulation run.
 
 ---
 
@@ -37,7 +37,7 @@ graph LR
 
 1.  **Generate Data:** Simulates 8 hours of order traffic (950+ orders) with realistic weight/item correlations.
 2.  **Clean & Validate:** Sanitizes raw inputs and creates SQL Views to serve as the "Source of Truth."
-3.  **Optimize:** Solves a Linear Programming problem to assign workers based on Speed ($/hr) and Wage ($/hr).
+3.  **Optimize:** Solves a Linear Programming problem to assign workers based on Speed (items/hr) and Wage ($/hr).
 4.  **Audit:** Performs a post-optimization "Safety Check" to flag physical constraints (e.g., Weight Limits).
 5.  **Report:** Generates a static PNG dashboard for engineers and a clean CSV for Tableau/Power BI.
 
