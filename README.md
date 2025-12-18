@@ -37,7 +37,7 @@ graph LR
 
 1.  **Generate Data:** Simulates 8 hours of order traffic (950+ orders) with realistic weight/item correlations.
 2.  **Clean & Validate:** Sanitizes raw inputs and creates SQL Views to serve as the "Source of Truth."
-3.  **Optimize:** Solves a Linear Programming problem to assign workers based on Speed (items/hr) and Wage ($/hr).
+3.  **Optimize:** Solves a Linear Programming problem to assign workers based on Speed (items/hour) and Wage ($/hour).
 4.  **Audit:** Performs a post-optimization "Safety Check" to flag physical constraints (e.g., Weight Limits).
 5.  **Report:** Generates a static PNG dashboard for engineers and a clean CSV for Tableau/Power BI.
 
