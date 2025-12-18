@@ -65,7 +65,6 @@ python src/main.py
 **4. View Results**
 * **Engineering Report:** `reports/dashboard.png`
 * **BI Dataset:** `data/bi_exports/fulfillment_bi_data.csv`
-* **Logs:** `pipeline.log`
 
 ---
 
